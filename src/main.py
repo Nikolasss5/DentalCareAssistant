@@ -1,9 +1,12 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 import telebot
 from telebot.types import Update
 
-from config import BOT_TOKEN, PORT, WEBHOOK_SECRET, WEBHOOK_URL
+from config import BOT_TOKEN, CRON_SECRET, PORT, WEBHOOK_SECRET, WEBHOOK_URL
 from handlers import register_handlers
+from reminders import send_due_reminders
+from postcare import send_due_postcare
+from recall import send_due_recalls
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")
 register_handlers(bot)
@@ -27,6 +30,27 @@ def telegram_webhook():
     bot.process_new_updates([update])
 
     return "OK", 200
+
+
+@app.route(f"/cron/{CRON_SECRET}", methods=["GET", "POST"])
+def run_cron_tasks():
+    if not CRON_SECRET:
+        return jsonify({"ok": False, "error": "CRON_SECRET is empty"}), 500
+
+    reminders_sent = send_due_reminders(bot)
+    postcare_sent = send_due_postcare(bot)
+    recalls_sent = send_due_recalls(bot)
+
+    result = {
+        "ok": True,
+        "reminders_sent": reminders_sent,
+        "postcare_sent": postcare_sent,
+        "recalls_sent": recalls_sent,
+    }
+
+    print(f"Cron endpoint executed: {result}")
+
+    return jsonify(result), 200
 
 
 def setup_webhook():

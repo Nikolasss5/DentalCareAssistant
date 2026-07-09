@@ -17,6 +17,7 @@ TIMEZONE = os.getenv("TIMEZONE", "Europe/Kyiv").strip()
 WEBHOOK_URL = os.getenv("WEBHOOK_URL", "").strip().rstrip("/")
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "").strip()
 PORT_RAW = os.getenv("PORT", "10000").strip()
+CRON_SECRET = os.getenv("CRON_SECRET", "").strip()
 
 
 def _parse_port():
