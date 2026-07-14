@@ -14,6 +14,7 @@ from booking import (
     start_booking,
     start_booking_from_callback,
     handle_booking_message,
+    handle_booking_contact,
     handle_booking_callback,
 )
 from appointments import show_my_appointment
@@ -152,6 +153,17 @@ def register_handlers(bot):
             return
 
         bot.answer_callback_query(call.id)
+
+    @bot.message_handler(content_types=["contact"])
+    def handle_contact(message):
+        if handle_booking_contact(bot, message):
+            return
+
+        bot.send_message(
+            message.chat.id,
+            "Дякуємо. Щоб записатися на прийом, скористайтесь меню нижче.",
+            reply_markup=main_menu_keyboard(),
+        )
 
     @bot.message_handler(content_types=["text"])
     def handle_text(message):

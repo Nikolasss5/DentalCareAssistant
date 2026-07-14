@@ -199,7 +199,7 @@ def _update_visit_status(row_number, status):
     update_appointment_field(
         row_number,
         "updated_at",
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        datetime.now(pytz.timezone(TIMEZONE)).strftime("%Y-%m-%d %H:%M:%S"),
     )
 
 

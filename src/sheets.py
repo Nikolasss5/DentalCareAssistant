@@ -2,9 +2,10 @@ import os
 from datetime import datetime
 
 import gspread
+import pytz
 from oauth2client.service_account import ServiceAccountCredentials
 
-from config import GOOGLE_CREDENTIALS_FILE, GOOGLE_SHEET_ID
+from config import GOOGLE_CREDENTIALS_FILE, GOOGLE_SHEET_ID, TIMEZONE
 
 BOOKING_REQUESTS_SHEET_NAME = "booking_requests"
 
@@ -49,6 +50,11 @@ POSTCARE_HEADERS = [
 
 def _sheets_configured():
     return bool(GOOGLE_SHEET_ID) and os.path.exists(GOOGLE_CREDENTIALS_FILE)
+
+
+def _now_string():
+    timezone = pytz.timezone(TIMEZONE)
+    return datetime.now(timezone).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def _get_client():
@@ -108,7 +114,7 @@ def append_booking_request(data):
         row_number = len(worksheet.get_all_values()) + 1
 
         row = [
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            _now_string(),
             data.get("patient_chat_id", ""),
             data.get("telegram_username", ""),
             data.get("patient_name", ""),
@@ -461,7 +467,7 @@ def append_appointment(data):
             APPOINTMENTS_HEADERS,
         )
 
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        now = _now_string()
 
         row = [
             data.get("patient_chat_id", ""),

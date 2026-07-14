@@ -6,6 +6,8 @@ from keyboards import (
     cancel_inline_keyboard,
     main_menu_keyboard,
     admin_booking_actions_keyboard,
+    phone_request_keyboard,
+    remove_reply_keyboard,
 )
 from sheets import append_booking_request
 from texts import (
@@ -149,8 +151,12 @@ def handle_booking_message(bot, message):
 
         bot.send_message(
             chat_id,
-            ASK_PHONE_TEXT,
-            reply_markup=cancel_inline_keyboard(),
+            (
+                f"{ASK_PHONE_TEXT}\n\n"
+                "Найзручніше — натисніть кнопку <b>📱 Поділитися номером</b> нижче.\n"
+                "Або просто напишіть номер вручну одним повідомленням."
+            ),
+            reply_markup=phone_request_keyboard(),
         )
         return True
 
@@ -162,13 +168,11 @@ def handle_booking_message(bot, message):
             )
             return True
 
-        session["phone"] = text
-        session["step"] = "comment"
-
-        bot.send_message(
-            chat_id,
-            ASK_COMMENT_TEXT,
-            reply_markup=cancel_inline_keyboard(),
+        _save_phone_and_ask_comment(
+            bot=bot,
+            chat_id=chat_id,
+            session=session,
+            phone=text,
         )
         return True
 
@@ -186,6 +190,57 @@ def handle_booking_message(bot, message):
         return True
 
     return False
+
+
+def handle_booking_contact(bot, message):
+    chat_id = message.chat.id
+    session = booking_sessions.get(chat_id)
+
+    if not session:
+        return False
+
+    if session.get("step") != "phone":
+        return False
+
+    contact = getattr(message, "contact", None)
+
+    if not contact or not getattr(contact, "phone_number", None):
+        bot.send_message(
+            chat_id,
+            "Не вдалося отримати номер. Напишіть його, будь ласка, вручну.",
+        )
+        return True
+
+    phone = str(contact.phone_number).strip()
+
+    if phone and not phone.startswith("+"):
+        phone = f"+{phone}"
+
+    _save_phone_and_ask_comment(
+        bot=bot,
+        chat_id=chat_id,
+        session=session,
+        phone=phone,
+    )
+
+    return True
+
+
+def _save_phone_and_ask_comment(bot, chat_id, session, phone):
+    session["phone"] = phone
+    session["step"] = "comment"
+
+    bot.send_message(
+        chat_id,
+        "Дякую, номер збережено ✅",
+        reply_markup=remove_reply_keyboard(),
+    )
+
+    bot.send_message(
+        chat_id,
+        ASK_COMMENT_TEXT,
+        reply_markup=cancel_inline_keyboard(),
+    )
 
 
 def _finish_booking(bot, message, session):

@@ -1,4 +1,10 @@
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import (
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardRemove,
+)
 
 
 def main_menu_keyboard():
@@ -80,6 +86,26 @@ def cancel_inline_keyboard():
         )
     )
     return keyboard
+
+
+def phone_request_keyboard():
+    keyboard = ReplyKeyboardMarkup(
+        resize_keyboard=True,
+        one_time_keyboard=True,
+    )
+
+    keyboard.add(
+        KeyboardButton(
+            "📱 Поділитися номером",
+            request_contact=True,
+        )
+    )
+
+    return keyboard
+
+
+def remove_reply_keyboard():
+    return ReplyKeyboardRemove()
 
 
 def reminder_actions_keyboard(row_number):
