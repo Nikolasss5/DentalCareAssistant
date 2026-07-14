@@ -169,7 +169,7 @@ def register_handlers(bot):
             _forward_question_to_admin(bot, message)
             return
 
-        if text == "📅 Записатися":
+        if text in {"📅 Записатися", "🗓 Записатися на прийом"}:
             start_booking(bot, message)
             return
 
@@ -177,7 +177,7 @@ def register_handlers(bot):
             show_my_appointment(bot, message)
             return
 
-        if text == "💬 Поставити питання":
+        if text in {"💬 Поставити питання", "❓ Поставити питання"}:
             question_sessions.add(chat_id)
             bot.send_message(
                 chat_id,
@@ -185,7 +185,7 @@ def register_handlers(bot):
             )
             return
 
-        if text == "🦷 Рекомендації":
+        if text in {"🦷 Рекомендації", "🦷 Рекомендації після процедури"}:
             bot.send_message(
                 chat_id,
                 AFTERCARE_TEXT,
@@ -193,7 +193,7 @@ def register_handlers(bot):
             )
             return
 
-        if text == "📞 Контакти клініки":
+        if text in {"📞 Контакти клініки", "📍 Контакти клініки"}:
             bot.send_message(
                 chat_id,
                 contact_text(),
@@ -229,7 +229,7 @@ def _forward_question_to_admin(bot, message):
     username_text = f"@{username}" if username else "—"
 
     admin_text = (
-        f"💬 <b>Нове питання пацієнта</b>\n\n"
+        f"❓ <b>Нове питання пацієнта</b>\n\n"
         f"Клініка: {escape(CLINIC_NAME)}\n"
         f"Telegram: {escape(username_text)}\n"
         f"chat_id: <code>{chat_id}</code>\n\n"

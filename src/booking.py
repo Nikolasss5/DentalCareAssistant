@@ -72,7 +72,7 @@ def handle_booking_callback(bot, call):
     if data == "booking_cancel":
         booking_sessions.pop(chat_id, None)
 
-        bot.answer_callback_query(call.id, "Запис скасовано")
+        bot.answer_callback_query(call.id, "Заявку скасовано")
         bot.send_message(
             chat_id,
             BOOKING_CANCELLED_TEXT,
@@ -140,7 +140,7 @@ def handle_booking_message(bot, message):
         if len(text) < 2:
             bot.send_message(
                 chat_id,
-                "Ім’я занадто коротке. Напишіть, будь ласка, ще раз.",
+                "Ім’я виглядає занадто коротким. Напишіть, будь ласка, ще раз.",
             )
             return True
 
@@ -224,8 +224,8 @@ def _notify_admin_about_booking(bot, session, sheet_success, sheet_error, sheet_
         sheet_status += f"\nПричина: {escape(sheet_error)}"
 
     text = (
-        "🦷 <b>Нова заявка на запис</b>\n\n"
-        f"Ім’я: <b>{escape(session.get('patient_name', ''))}</b>\n"
+        "🆕 <b>Нова заявка на запис</b>\n\n"
+        f"Пацієнт: <b>{escape(session.get('patient_name', ''))}</b>\n"
         f"Телефон: <b>{escape(session.get('phone', ''))}</b>\n"
         f"Послуга: {escape(session.get('procedure_type', ''))}\n"
         f"Коментар: {escape(session.get('comment', ''))}\n"

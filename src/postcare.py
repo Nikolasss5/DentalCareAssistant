@@ -48,10 +48,11 @@ def send_due_postcare(bot):
         text = (
             f"🦷 <b>Рекомендації після візиту</b>\n\n"
             f"{escape(str(appointment.get('patient_name', '')))}, "
-            f"дякуємо за візит у <b>{escape(CLINIC_NAME)}</b>.\n\n"
+            f"дякуємо, що довірили нам свою усмішку.\n\n"
             f"<b>Процедура:</b> {escape(str(procedure_type))}\n\n"
             f"{escape(str(postcare_text))}\n\n"
-            "Якщо щось турбує — натисніть кнопку нижче."
+            "Якщо щось турбує або є питання — натисніть кнопку нижче. "
+            "Ми поруч."
         )
 
         bot.send_message(
@@ -95,7 +96,7 @@ def handle_postcare_callback(bot, call):
 
         bot.send_message(
             chat_id,
-            "✅ Дякуємо! Якщо з’являться питання — ви завжди можете написати клініці.",
+            "✅ Дякуємо! Бережіть себе та свої зубки. Якщо з’являться питання — ви завжди можете написати клініці.",
             reply_markup=main_menu_keyboard(),
         )
         return True

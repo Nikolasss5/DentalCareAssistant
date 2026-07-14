@@ -106,7 +106,7 @@ def handle_visit_callback(bot, call):
                 "✅ <b>Візит позначено як завершений</b>\n\n"
                 f"Пацієнт: <b>{escape(str(appointment.get('patient_name', '')))}</b>\n"
                 f"Процедура: {escape(str(appointment.get('procedure_type', '')))}\n\n"
-                "Зараз перевіряю post-care рекомендації..."
+                "Зараз перевіряю рекомендації після процедури..."
             ),
         )
 
@@ -114,7 +114,7 @@ def handle_visit_callback(bot, call):
 
         bot.send_message(
             admin_chat_id,
-            f"🦷 Post-care перевірено.\n\nНадіслано рекомендацій: {sent_count}",
+            f"🦷 Рекомендації після процедури перевірено.\n\nНадіслано повідомлень: {sent_count}",
         )
 
         return True
@@ -158,7 +158,7 @@ def handle_visit_callback(bot, call):
             appointment,
             (
                 "🔄 <b>Ваш запис потребує уточнення</b>\n\n"
-                "Адміністратор клініки зв’яжеться з вами для перенесення або уточнення часу."
+                "Адміністратор клініки зв’яжеться з вами для перенесення або уточнення зручного часу."
             ),
         )
 

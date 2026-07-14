@@ -122,8 +122,8 @@ def handle_reminder_callback(bot, call):
         bot.send_message(
             chat_id,
             (
-                "🔄 Дякуємо. Ми передали адміністратору, що ви хочете перенести запис.\n\n"
-                "Клініка зв’яжеться з вами для уточнення нового часу."
+                "🔄 Дякуємо. Ми передали адміністратору, що вам потрібно перенести запис.\n\n"
+                "Клініка зв’яжеться з вами для уточнення нового зручного часу."
             ),
             reply_markup=main_menu_keyboard(),
         )
@@ -144,7 +144,7 @@ def handle_reminder_callback(bot, call):
             chat_id,
             (
                 "❌ Ми передали адміністратору, що ви хочете скасувати запис.\n\n"
-                "Якщо це помилка — напишіть клініці через кнопку 💬 Поставити питання."
+                "Якщо це помилка або хочете уточнити деталі — напишіть клініці через кнопку ❓ Поставити питання."
             ),
             reply_markup=main_menu_keyboard(),
         )
@@ -172,10 +172,10 @@ def _send_patient_reminder(bot, appointment, row_number, reminder_type):
     appointment_time = appointment.get("appointment_time", "")
 
     if reminder_type == "2h":
-        title = "⏰ Нагадування про візит"
-        intro = "Ваш візит вже скоро — приблизно через 2 години."
+        title = "⏰ <b>Ваш візит уже скоро</b>"
+        intro = "Залишилось приблизно 2 години. Чекаємо вас у клініці."
     else:
-        title = "📅 Нагадування про візит"
+        title = "📅 <b>Нагадування про візит</b>"
         intro = "Нагадуємо, що у вас запланований візит до клініки."
 
     text = (
@@ -185,7 +185,7 @@ def _send_patient_reminder(bot, appointment, row_number, reminder_type):
         f"Процедура: {escape(str(procedure))}\n"
         f"Дата: <b>{escape(str(appointment_date))}</b>\n"
         f"Час: <b>{escape(str(appointment_time))}</b>\n\n"
-        "Підтвердіть, будь ласка, ваш візит:"
+        "Підтвердіть, будь ласка, чи все актуально:"
     )
 
     bot.send_message(

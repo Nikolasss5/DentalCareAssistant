@@ -197,7 +197,7 @@ def _finish_admin_appointment_confirmation(bot, admin_chat_id, session):
         update_booking_request_status(booking_row_number, "confirmed")
 
     admin_text = (
-        "✅ <b>Запис створено</b>\n\n"
+        "✅ <b>Запис успішно підтверджено</b>\n\n"
         f"Пацієнт: <b>{escape(str(appointment_data.get('patient_name', '')))}</b>\n"
         f"Телефон: {escape(str(appointment_data.get('phone', '')))}\n"
         f"Процедура: {escape(str(appointment_data.get('procedure_type', '')))}\n"
@@ -222,7 +222,7 @@ def _notify_patient_booking_confirmed(bot, appointment_data):
         f"Процедура: {escape(str(appointment_data.get('procedure_type', '')))}\n"
         f"Дата: <b>{escape(str(appointment_data.get('appointment_date', '')))}</b>\n"
         f"Час: <b>{escape(str(appointment_data.get('appointment_time', '')))}</b>\n\n"
-        "Ми нагадаємо вам про візит заздалегідь 🦷"
+        "Ми нагадаємо вам про візит заздалегідь 🦷\n\nДо зустрічі!"
     )
 
     try:

@@ -6,7 +6,7 @@ def main_menu_keyboard():
 
     keyboard.add(
         InlineKeyboardButton(
-            "📅 Записатися",
+            "🗓 Записатися на прийом",
             callback_data="menu_booking",
         ),
         InlineKeyboardButton(
@@ -14,15 +14,15 @@ def main_menu_keyboard():
             callback_data="menu_my_appointment",
         ),
         InlineKeyboardButton(
-            "💬 Поставити питання",
+            "❓ Поставити питання",
             callback_data="menu_question",
         ),
         InlineKeyboardButton(
-            "🦷 Рекомендації",
+            "🦷 Рекомендації після процедури",
             callback_data="menu_aftercare",
         ),
         InlineKeyboardButton(
-            "📞 Контакти клініки",
+            "📍 Контакти клініки",
             callback_data="menu_contacts",
         ),
     )
@@ -43,7 +43,7 @@ def services_keyboard():
             callback_data="booking_service:cleaning",
         ),
         InlineKeyboardButton(
-            "🛠 Лікування зуба",
+            "🛠 Лікування зуба / карієсу",
             callback_data="booking_service:treatment",
         ),
         InlineKeyboardButton(
@@ -87,11 +87,11 @@ def reminder_actions_keyboard(row_number):
 
     keyboard.add(
         InlineKeyboardButton(
-            "✅ Підтвердити",
+            "✅ Підтвердити візит",
             callback_data=f"reminder_confirm:{row_number}",
         ),
         InlineKeyboardButton(
-            "🔄 Перенести",
+            "🔄 Перенести запис",
             callback_data=f"reminder_reschedule:{row_number}",
         ),
         InlineKeyboardButton(
@@ -125,11 +125,11 @@ def recall_actions_keyboard(row_number):
 
     keyboard.add(
         InlineKeyboardButton(
-            "📅 Хочу записатися",
+            "🗓 Так, хочу записатися",
             callback_data=f"recall_book:{row_number}",
         ),
         InlineKeyboardButton(
-            "💬 Поставити питання",
+            "❓ Поставити питання",
             callback_data=f"recall_question:{row_number}",
         ),
         InlineKeyboardButton(
@@ -171,7 +171,7 @@ def admin_visit_actions_keyboard(row_number):
             callback_data=f"visit_no_show:{row_number}",
         ),
         InlineKeyboardButton(
-            "🔄 Перенести",
+            "🔄 Перенести запис",
             callback_data=f"visit_reschedule:{row_number}",
         ),
         InlineKeyboardButton(

@@ -113,8 +113,8 @@ def handle_recall_callback(bot, call):
         bot.send_message(
             chat_id,
             (
-                "📅 Дякуємо! Ми передали адміністратору, що ви хочете записатися.\n\n"
-                "Клініка зв’яжеться з вами для уточнення дати та часу."
+                "🗓 Дякуємо! Ми передали адміністратору, що ви хочете записатися.\n\n"
+                "Клініка зв’яжеться з вами для уточнення зручної дати та часу."
             ),
             reply_markup=main_menu_keyboard(),
         )
@@ -122,7 +122,7 @@ def handle_recall_callback(bot, call):
         _notify_admin_about_recall_action(
             bot=bot,
             appointment=appointment,
-            action_text="📅 Пацієнт хоче записатися на повторний візит",
+            action_text="🗓 Пацієнт хоче записатися на повторний візит",
         )
         return True
 
@@ -155,7 +155,7 @@ def handle_recall_callback(bot, call):
             (
                 "⏳ Добре, не турбуємо.\n\n"
                 "Якщо захочете записатися пізніше — скористайтесь кнопкою "
-                "<b>📅 Записатися</b> у меню."
+                "<b>🗓 Записатися на прийом</b> у меню."
             ),
             reply_markup=main_menu_keyboard(),
         )
@@ -173,10 +173,10 @@ def _send_patient_recall(bot, appointment, row_number, recall_after_days):
 
     text = (
         "🔔 <b>Нагадування про повторний візит</b>\n\n"
-        f"{escape(str(name))}, після вашого візиту минув рекомендований період для контролю "
-        f"або повторного звернення.\n\n"
+        f"{escape(str(name))}, як ваші зубки? 🦷\n\n"
+        f"Після процедури <b>{escape(str(procedure_type))}</b> минув рекомендований період "
+        f"для контрольного огляду або повторного звернення.\n\n"
         f"Клініка: <b>{escape(CLINIC_NAME)}</b>\n"
-        f"Попередня процедура: <b>{escape(str(procedure_type))}</b>\n"
         f"Дата попереднього візиту: <b>{escape(str(appointment_date))}</b>\n"
         f"Рекомендований інтервал: {escape(str(recall_after_days))} днів\n\n"
         "Бажаєте, щоб адміністратор допоміг підібрати зручний час?"
