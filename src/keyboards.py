@@ -207,3 +207,25 @@ def admin_visit_actions_keyboard(row_number):
     )
 
     return keyboard
+
+
+def admin_menu_keyboard():
+    keyboard = InlineKeyboardMarkup(row_width=1)
+
+    keyboard.add(
+        InlineKeyboardButton(
+            "📋 Записи на сьогодні",
+            callback_data="admin_menu_today",
+        ),
+        InlineKeyboardButton(
+            "📊 Статистика",
+            callback_data="admin_menu_stats",
+        ),
+        InlineKeyboardButton(
+            "ℹ️ Команди адміна",
+            callback_data="admin_menu_help",
+        ),
+    )
+
+    return keyboard
+

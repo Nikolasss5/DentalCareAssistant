@@ -1,7 +1,7 @@
 from html import escape
 
 from config import ADMIN_CHAT_ID, CLINIC_NAME
-from keyboards import main_menu_keyboard
+from keyboards import main_menu_keyboard, admin_menu_keyboard
 from texts import (
     start_text,
     contact_text,
@@ -26,6 +26,7 @@ from admin_appointments import (
     handle_admin_appointment_message,
 )
 from visit_management import show_today_appointments, handle_visit_callback
+from sheets import get_admin_stats
 
 question_sessions = set()
 
@@ -41,14 +42,44 @@ def register_handlers(bot):
 
     @bot.message_handler(commands=["admin"])
     def handle_admin(message):
+        chat_id = message.chat.id
+
+        if _is_admin_chat(chat_id):
+            bot.send_message(
+                chat_id,
+                (
+                    "🦷 <b>Адмін-панель клініки</b>\n\n"
+                    f"Ваш Telegram chat_id:\n<code>{chat_id}</code>\n\n"
+                    "Оберіть потрібну дію нижче або скористайтесь командами:"
+                ),
+                reply_markup=admin_menu_keyboard(),
+            )
+            return
+
         bot.send_message(
-            message.chat.id,
+            chat_id,
             (
                 "Ваш Telegram chat_id:\n\n"
-                f"<code>{message.chat.id}</code>\n\n"
+                f"<code>{chat_id}</code>\n\n"
                 "Скопіюйте це число і вставте в .env у поле ADMIN_CHAT_ID."
             ),
         )
+
+    @bot.message_handler(commands=["admin_help", "admin_menu"])
+    def handle_admin_help(message):
+        if not _is_admin_chat(message.chat.id):
+            bot.send_message(message.chat.id, "⛔ Ця команда доступна тільки адміну.")
+            return
+
+        _send_admin_help(bot, message.chat.id)
+
+    @bot.message_handler(commands=["admin_stats"])
+    def handle_admin_stats(message):
+        if not _is_admin_chat(message.chat.id):
+            bot.send_message(message.chat.id, "⛔ Ця команда доступна тільки адміну.")
+            return
+
+        _send_admin_stats(bot, message.chat.id)
 
     @bot.message_handler(commands=["run_reminders"])
     def handle_run_reminders(message):
@@ -115,6 +146,21 @@ def register_handlers(bot):
 
         data = call.data
         chat_id = call.message.chat.id
+
+        if data == "admin_menu_today":
+            bot.answer_callback_query(call.id)
+            show_today_appointments(bot, call.message)
+            return
+
+        if data == "admin_menu_stats":
+            bot.answer_callback_query(call.id)
+            _send_admin_stats(bot, chat_id)
+            return
+
+        if data == "admin_menu_help":
+            bot.answer_callback_query(call.id)
+            _send_admin_help(bot, chat_id)
+            return
 
         if data == "menu_booking":
             start_booking_from_callback(bot, call)
@@ -249,3 +295,76 @@ def _forward_question_to_admin(bot, message):
     )
 
     bot.send_message(ADMIN_CHAT_ID, admin_text)
+
+
+def _is_admin_chat(chat_id):
+    return bool(ADMIN_CHAT_ID) and chat_id == ADMIN_CHAT_ID
+
+
+def _send_admin_help(bot, chat_id):
+    text = (
+        "ℹ️ <b>Команди адміна</b>\n\n"
+        "/admin — відкрити адмін-панель\n"
+        "/admin_today — записи на сьогодні\n"
+        "/admin_stats — коротка статистика\n"
+        "/run_reminders — вручну перевірити нагадування\n"
+        "/run_postcare — вручну перевірити рекомендації після процедури\n"
+        "/run_recalls — вручну перевірити recall-нагадування\n\n"
+        "У щоденній роботі найчастіше потрібні: <b>записи на сьогодні</b> "
+        "та <b>статистика</b>."
+    )
+
+    bot.send_message(
+        chat_id,
+        text,
+        reply_markup=admin_menu_keyboard(),
+    )
+
+
+def _send_admin_stats(bot, chat_id):
+    stats, error = get_admin_stats()
+
+    if error or not stats:
+        bot.send_message(
+            chat_id,
+            (
+                "⚠️ Не вдалося отримати статистику.\n\n"
+                f"Причина: {escape(str(error))}"
+            ),
+            reply_markup=admin_menu_keyboard(),
+        )
+        return
+
+    text = (
+        "📊 <b>Статистика бота</b>\n\n"
+        f"Дата: <b>{escape(str(stats.get('today', '')))}</b>\n\n"
+        "<b>Сьогодні</b>\n"
+        f"Заявок: <b>{stats.get('requests_today', 0)}</b>\n"
+        f"Записів на сьогодні: <b>{stats.get('appointments_today', 0)}</b>\n"
+        f"Активних записів: <b>{stats.get('active_today', 0)}</b>\n"
+        f"Завершених візитів: <b>{stats.get('completed_today', 0)}</b>\n"
+        f"No-show: <b>{stats.get('no_show_today', 0)}</b>\n\n"
+        "<b>Заявки</b>\n"
+        f"Всього: <b>{stats.get('booking_total', 0)}</b>\n"
+        f"Нові: <b>{stats.get('booking_new', 0)}</b>\n"
+        f"Підтверджено: <b>{stats.get('booking_confirmed', 0)}</b>\n"
+        f"Відхилено: <b>{stats.get('booking_rejected', 0)}</b>\n\n"
+        "<b>Записи</b>\n"
+        f"Всього: <b>{stats.get('appointments_total', 0)}</b>\n"
+        f"Підтверджені: <b>{stats.get('appointments_confirmed', 0)}</b>\n"
+        f"Підтверджені пацієнтом: <b>{stats.get('appointments_confirmed_by_patient', 0)}</b>\n"
+        f"Завершені: <b>{stats.get('appointments_completed', 0)}</b>\n"
+        f"Перенесення: <b>{stats.get('appointments_reschedule_requested', 0)}</b>\n"
+        f"Скасовані: <b>{stats.get('appointments_cancelled', 0)}</b>\n"
+        f"No-show: <b>{stats.get('appointments_no_show', 0)}</b>\n\n"
+        "<b>Автоматизація</b>\n"
+        f"Post-care надіслано: <b>{stats.get('postcare_sent', 0)}</b>\n"
+        f"Recall надіслано: <b>{stats.get('recall_sent', 0)}</b>"
+    )
+
+    bot.send_message(
+        chat_id,
+        text,
+        reply_markup=admin_menu_keyboard(),
+    )
+

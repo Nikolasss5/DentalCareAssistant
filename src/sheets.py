@@ -531,3 +531,132 @@ def get_appointments_by_date(appointment_date):
 
     except Exception as error:
         return [], str(error)
+
+
+def get_admin_stats():
+    """
+    Returns simple admin statistics for demo and daily control.
+    """
+    if not _sheets_configured():
+        return None, "Google Sheets is not configured yet."
+
+    try:
+        client = _get_client()
+        spreadsheet = client.open_by_key(GOOGLE_SHEET_ID)
+
+        booking_worksheet = _get_or_create_worksheet(
+            spreadsheet,
+            BOOKING_REQUESTS_SHEET_NAME,
+            BOOKING_REQUESTS_HEADERS,
+        )
+        appointments_worksheet = _get_or_create_worksheet(
+            spreadsheet,
+            APPOINTMENTS_SHEET_NAME,
+            APPOINTMENTS_HEADERS,
+        )
+
+        booking_records = booking_worksheet.get_all_records()
+        appointment_records = appointments_worksheet.get_all_records()
+
+        timezone = pytz.timezone(TIMEZONE)
+        now = datetime.now(timezone)
+        today_iso = now.strftime("%Y-%m-%d")
+        today_dot = now.strftime("%d.%m.%Y")
+
+        booking_status_counts = {}
+        for record in booking_records:
+            status = str(record.get("status", "")).strip().lower() or "empty"
+            booking_status_counts[status] = booking_status_counts.get(status, 0) + 1
+
+        appointment_status_counts = {}
+        for record in appointment_records:
+            status = str(record.get("status", "")).strip().lower() or "empty"
+            appointment_status_counts[status] = appointment_status_counts.get(status, 0) + 1
+
+        requests_today = sum(
+            1
+            for record in booking_records
+            if _matches_today(record.get("created_at", ""), today_iso, today_dot)
+        )
+
+        appointments_today = [
+            record
+            for record in appointment_records
+            if _matches_today(record.get("appointment_date", ""), today_iso, today_dot)
+        ]
+
+        active_statuses = {
+            "confirmed",
+            "confirmed_by_patient",
+            "reschedule_requested",
+        }
+
+        active_today = sum(
+            1
+            for record in appointments_today
+            if str(record.get("status", "")).strip().lower() in active_statuses
+        )
+
+        completed_today = sum(
+            1
+            for record in appointments_today
+            if str(record.get("status", "")).strip().lower() == "completed"
+        )
+
+        no_show_today = sum(
+            1
+            for record in appointments_today
+            if str(record.get("status", "")).strip().lower() == "no_show"
+        )
+
+        stats = {
+            "today": today_iso,
+            "requests_today": requests_today,
+            "appointments_today": len(appointments_today),
+            "active_today": active_today,
+            "completed_today": completed_today,
+            "no_show_today": no_show_today,
+            "booking_total": len(booking_records),
+            "booking_new": booking_status_counts.get("new", 0),
+            "booking_confirmation_started": booking_status_counts.get(
+                "confirmation_started", 0
+            ),
+            "booking_confirmed": booking_status_counts.get("confirmed", 0),
+            "booking_rejected": booking_status_counts.get("rejected", 0),
+            "appointments_total": len(appointment_records),
+            "appointments_confirmed": appointment_status_counts.get("confirmed", 0),
+            "appointments_confirmed_by_patient": appointment_status_counts.get(
+                "confirmed_by_patient", 0
+            ),
+            "appointments_completed": appointment_status_counts.get("completed", 0),
+            "appointments_reschedule_requested": appointment_status_counts.get(
+                "reschedule_requested", 0
+            ),
+            "appointments_cancelled": appointment_status_counts.get("cancelled", 0),
+            "appointments_no_show": appointment_status_counts.get("no_show", 0),
+            "postcare_sent": sum(
+                1
+                for record in appointment_records
+                if str(record.get("postcare_sent", "")).strip().lower() == "yes"
+            ),
+            "recall_sent": sum(
+                1
+                for record in appointment_records
+                if str(record.get("recall_sent", "")).strip().lower() == "yes"
+            ),
+        }
+
+        return stats, None
+
+    except Exception as error:
+        return None, str(error)
+
+
+def _matches_today(value, today_iso, today_dot):
+    raw_value = str(value).strip()
+
+    if not raw_value:
+        return False
+
+    return raw_value.startswith(today_iso) or raw_value.startswith(today_dot)
+
