@@ -1,3 +1,4 @@
+import re
 from html import escape
 
 from config import ADMIN_CHAT_ID, CLINIC_NAME
@@ -216,6 +217,9 @@ def register_handlers(bot):
         chat_id = message.chat.id
         text = (message.text or "").strip()
 
+        if _handle_admin_reply_to_patient(bot, message):
+            return
+
         if handle_admin_appointment_message(bot, message):
             return
 
@@ -266,6 +270,71 @@ def register_handlers(bot):
         )
 
 
+
+def _handle_admin_reply_to_patient(bot, message):
+    if not _is_admin_chat(message.chat.id):
+        return False
+
+    replied_message = getattr(message, "reply_to_message", None)
+    if replied_message is None:
+        return False
+
+    replied_text = (getattr(replied_message, "text", None) or "").strip()
+    if "Нове питання пацієнта" not in replied_text:
+        return False
+
+    match = re.search(r"chat_id:\\s*(\\d+)", replied_text)
+    if not match:
+        bot.send_message(
+            message.chat.id,
+            (
+                "⚠️ Не вдалося визначити пацієнта.\n\n"
+                "Відповідайте саме на повідомлення з питанням пацієнта."
+            ),
+        )
+        return True
+
+    reply_text = (message.text or "").strip()
+    if not reply_text:
+        bot.send_message(
+            message.chat.id,
+            "⚠️ Відповідь не може бути порожньою.",
+        )
+        return True
+
+    patient_chat_id = int(match.group(1))
+
+    try:
+        bot.send_message(
+            patient_chat_id,
+            (
+                "💬 <b>Відповідь клініки</b>\n\n"
+                f"{escape(reply_text)}"
+            ),
+            reply_markup=main_menu_keyboard(),
+        )
+    except Exception as error:
+        print(
+            f"Failed to send admin reply to patient "
+            f"{patient_chat_id}: {error}"
+        )
+        bot.send_message(
+            message.chat.id,
+            (
+                "⚠️ Не вдалося надіслати відповідь пацієнту.\n\n"
+                "Можливо, пацієнт заблокував бота "
+                "або Telegram тимчасово недоступний."
+            ),
+        )
+        return True
+
+    bot.send_message(
+        message.chat.id,
+        "✅ Відповідь надіслано пацієнту.",
+    )
+    return True
+
+
 def _forward_question_to_admin(bot, message):
     chat_id = message.chat.id
     question = (message.text or "").strip()
@@ -291,7 +360,9 @@ def _forward_question_to_admin(bot, message):
         f"Клініка: {escape(CLINIC_NAME)}\n"
         f"Telegram: {escape(username_text)}\n"
         f"chat_id: <code>{chat_id}</code>\n\n"
-        f"Питання:\n{escape(question)}"
+        f"Питання:\n{escape(question)}\n\n"
+        "↩️ <i>Щоб відповісти пацієнту, "
+        "дайте відповідь на це повідомлення.</i>"
     )
 
     bot.send_message(ADMIN_CHAT_ID, admin_text)
@@ -310,6 +381,8 @@ def _send_admin_help(bot, chat_id):
         "/run_reminders — вручну перевірити нагадування\n"
         "/run_postcare — вручну перевірити рекомендації після процедури\n"
         "/run_recalls — вручну перевірити recall-нагадування\n\n"
+        "Щоб відповісти пацієнту, використайте функцію "
+        "<b>Відповісти</b> на повідомленні з його питанням.\n\n"
         "У щоденній роботі найчастіше потрібні: <b>записи на сьогодні</b> "
         "та <b>статистика</b>."
     )
