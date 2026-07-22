@@ -283,7 +283,7 @@ def _handle_admin_reply_to_patient(bot, message):
     if "Нове питання пацієнта" not in replied_text:
         return False
 
-    match = re.search(r"chat_id:\\s*(\\d+)", replied_text)
+    match = re.search(r"chat_id:\s*(\d+)", replied_text)
     if not match:
         bot.send_message(
             message.chat.id,
