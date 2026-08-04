@@ -48,6 +48,28 @@ POSTCARE_HEADERS = [
 ]
 
 
+USERS_SHEET_NAME = "users"
+
+USERS_HEADERS = [
+    "patient_chat_id",
+    "telegram_username",
+    "language",
+    "created_at",
+    "updated_at",
+]
+
+LANGUAGE_STATS_SHEET_NAME = "language_stats"
+
+LANGUAGE_STATS_HEADERS = [
+    "patient_chat_id",
+    "language",
+    "first_selected_at",
+    "updated_at",
+]
+
+_user_language_cache = {}
+
+
 def _sheets_configured():
     return bool(GOOGLE_SHEET_ID) and os.path.exists(GOOGLE_CREDENTIALS_FILE)
 
@@ -89,6 +111,182 @@ def _get_or_create_worksheet(spreadsheet, sheet_name, headers):
         worksheet.append_row(headers)
 
     return worksheet
+
+
+def get_user_language(patient_chat_id):
+    """
+    Returns saved interface language for a Telegram user.
+
+    Returns:
+        tuple: (language: str | None, error_message: str | None)
+    """
+    cache_key = str(patient_chat_id).strip()
+
+    if cache_key in _user_language_cache:
+        return _user_language_cache[cache_key], None
+
+    if not _sheets_configured():
+        return None, "Google Sheets is not configured yet."
+
+    try:
+        client = _get_client()
+        spreadsheet = client.open_by_key(GOOGLE_SHEET_ID)
+        worksheet = _get_or_create_worksheet(
+            spreadsheet,
+            USERS_SHEET_NAME,
+            USERS_HEADERS,
+        )
+
+        records = worksheet.get_all_records()
+
+        for record in records:
+            record_chat_id = str(
+                record.get("patient_chat_id", "")
+            ).strip()
+
+            if record_chat_id != cache_key:
+                continue
+
+            language = str(record.get("language", "")).strip().lower()
+            if language not in {"uk", "ru"}:
+                return None, None
+
+            _user_language_cache[cache_key] = language
+            return language, None
+
+        return None, None
+
+    except Exception as error:
+        return None, str(error)
+
+
+def set_user_language(patient_chat_id, language, telegram_username=""):
+    """
+    Creates or updates a Telegram user's interface language.
+
+    Returns:
+        tuple: (success: bool, error_message: str | None)
+    """
+    cache_key = str(patient_chat_id).strip()
+    language = str(language).strip().lower()
+
+    if language not in {"uk", "ru"}:
+        return False, "Unsupported language."
+
+    _user_language_cache[cache_key] = language
+
+    if not _sheets_configured():
+        return False, "Google Sheets is not configured yet."
+
+    try:
+        client = _get_client()
+        spreadsheet = client.open_by_key(GOOGLE_SHEET_ID)
+        worksheet = _get_or_create_worksheet(
+            spreadsheet,
+            USERS_SHEET_NAME,
+            USERS_HEADERS,
+        )
+
+        headers = worksheet.row_values(1)
+        records = worksheet.get_all_records()
+        now = _now_string()
+
+        _upsert_language_stat(
+            spreadsheet=spreadsheet,
+            patient_chat_id=cache_key,
+            language=language,
+            now=now,
+        )
+
+        for row_number, record in enumerate(records, start=2):
+            record_chat_id = str(
+                record.get("patient_chat_id", "")
+            ).strip()
+
+            if record_chat_id != cache_key:
+                continue
+
+            values = {
+                "telegram_username": telegram_username,
+                "language": language,
+                "updated_at": now,
+            }
+
+            for field_name, value in values.items():
+                if field_name not in headers:
+                    continue
+                column_number = headers.index(field_name) + 1
+                worksheet.update_cell(row_number, column_number, value)
+
+            return True, None
+
+        worksheet.append_row(
+            [
+                cache_key,
+                telegram_username,
+                language,
+                now,
+                now,
+            ],
+            value_input_option="USER_ENTERED",
+        )
+        return True, None
+
+    except Exception as error:
+        return False, str(error)
+
+
+
+def _upsert_language_stat(
+    spreadsheet,
+    patient_chat_id,
+    language,
+    now,
+):
+    """
+    Stores one current language choice per unique Telegram user.
+    This worksheet is intentionally separate from admin statistics.
+    """
+    worksheet = _get_or_create_worksheet(
+        spreadsheet,
+        LANGUAGE_STATS_SHEET_NAME,
+        LANGUAGE_STATS_HEADERS,
+    )
+
+    headers = worksheet.row_values(1)
+    records = worksheet.get_all_records()
+    chat_id_value = str(patient_chat_id).strip()
+
+    for row_number, record in enumerate(records, start=2):
+        record_chat_id = str(
+            record.get("patient_chat_id", "")
+        ).strip()
+
+        if record_chat_id != chat_id_value:
+            continue
+
+        values = {
+            "language": language,
+            "updated_at": now,
+        }
+
+        for field_name, value in values.items():
+            if field_name not in headers:
+                continue
+            column_number = headers.index(field_name) + 1
+            worksheet.update_cell(row_number, column_number, value)
+
+        return
+
+    worksheet.append_row(
+        [
+            chat_id_value,
+            language,
+            now,
+            now,
+        ],
+        value_input_option="USER_ENTERED",
+    )
 
 
 def append_booking_request(data):
