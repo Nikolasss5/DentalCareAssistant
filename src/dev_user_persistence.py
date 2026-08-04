@@ -1,6 +1,5 @@
 import hashlib
 import json
-import os
 import traceback
 from datetime import datetime
 from pathlib import Path
@@ -58,7 +57,6 @@ def _credentials_path():
             if candidate.is_file():
                 return candidate
         except PermissionError:
-            # Preserve this candidate so the caller can report the exact stage.
             return candidate
 
     raise FileNotFoundError(
@@ -68,13 +66,22 @@ def _credentials_path():
 
 def _client():
     stage = "resolve_credentials_path"
+    credentials_path = None
+
     try:
+        print("DEV Google auth stage=resolve_credentials_path", flush=True)
         credentials_path = _credentials_path()
 
         stage = "read_credentials_file"
+        print(
+            "DEV Google auth stage=read_credentials_file; "
+            f"path={str(credentials_path)!r}",
+            flush=True,
+        )
         raw_text = credentials_path.read_text(encoding="utf-8")
 
         stage = "parse_credentials_json"
+        print("DEV Google auth stage=parse_credentials_json", flush=True)
         credentials_info = json.loads(raw_text)
 
         required_keys = {"client_email", "private_key", "token_uri"}
@@ -85,20 +92,24 @@ def _client():
             )
 
         stage = "authorize_gspread"
+        print("DEV Google auth stage=authorize_gspread", flush=True)
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive",
         ]
-        return gspread.service_account_from_dict(credentials_info, scopes=scopes)
+        client = gspread.service_account_from_dict(credentials_info, scopes=scopes)
+        print("DEV Google auth stage=authorized", flush=True)
+        return client
     except Exception as error:
-        path_value = str(GOOGLE_CREDENTIALS_FILE or "")
+        safe_path = str(credentials_path) if credentials_path is not None else "unresolved"
         print(
             "DEV Google auth failed "
-            f"at stage={stage}; configured_path={path_value!r}; "
-            f"cwd={os.getcwd()!r}; error={type(error).__name__}: {error}",
+            f"at stage={stage}; path={safe_path!r}; "
+            f"error={type(error).__name__}: {error!r}",
             flush=True,
         )
-        print(traceback.format_exc(), flush=True)
+        print("DEV Google auth traceback follows:", flush=True)
+        print("".join(traceback.format_exception(error)), flush=True)
         raise
 
 
@@ -107,7 +118,9 @@ def _worksheet():
         raise RuntimeError("GOOGLE_SHEET_ID is missing")
 
     client = _client()
+    print("DEV Google Sheets stage=open_spreadsheet", flush=True)
     spreadsheet = client.open_by_key(GOOGLE_SHEET_ID)
+    print("DEV Google Sheets stage=open_users_worksheet", flush=True)
     worksheet = spreadsheet.worksheet(USERS_SHEET_NAME)
     headers = worksheet.row_values(1)
     missing = sorted(REQUIRED_HEADERS.difference(headers))
@@ -152,7 +165,7 @@ def get_user_language(patient_chat_id):
     except Exception as error:
         print(
             "DEV get_user_language failed: "
-            f"{type(error).__name__}: {error}",
+            f"{type(error).__name__}: {error!r}",
             flush=True,
         )
         return None, str(error)
@@ -214,7 +227,7 @@ def set_user_language(patient_chat_id, language, telegram_username=""):
     except Exception as error:
         print(
             "DEV set_user_language failed: "
-            f"{type(error).__name__}: {error}",
+            f"{type(error).__name__}: {error!r}",
             flush=True,
         )
         return False, str(error)
