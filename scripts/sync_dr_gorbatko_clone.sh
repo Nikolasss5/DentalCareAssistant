@@ -45,8 +45,12 @@ rm -f \
 
 # Preserve this reusable sync helper in the test branch.
 mkdir -p "$ROOT_DIR/scripts"
-cp "$0" "$ROOT_DIR/scripts/sync_dr_gorbatko_clone.sh"
-chmod +x "$ROOT_DIR/scripts/sync_dr_gorbatko_clone.sh"
+SCRIPT_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+TARGET_SCRIPT="$ROOT_DIR/scripts/sync_dr_gorbatko_clone.sh"
+if [[ "$SCRIPT_PATH" != "$TARGET_SCRIPT" ]]; then
+  cp "$SCRIPT_PATH" "$TARGET_SCRIPT"
+fi
+chmod +x "$TARGET_SCRIPT"
 
 echo "Checking for forbidden secret files..."
 if git ls-files | grep -E '(^|/)(\.env|google_credentials\.json|service-account\.json)$' >/dev/null; then
