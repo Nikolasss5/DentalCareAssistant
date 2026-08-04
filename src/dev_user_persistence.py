@@ -1,9 +1,12 @@
 import hashlib
+import json
+import os
+import traceback
 from datetime import datetime
+from pathlib import Path
 
 import gspread
 import pytz
-from oauth2client.service_account import ServiceAccountCredentials
 
 from config import GOOGLE_CREDENTIALS_FILE, GOOGLE_SHEET_ID, TIMEZONE
 
@@ -32,23 +35,79 @@ def _now_string():
     return datetime.now(timezone).strftime("%Y-%m-%d %H:%M:%S")
 
 
-def _client():
-    scope = [
-        "https://spreadsheets.google.com/feeds",
-        "https://www.googleapis.com/auth/drive",
-    ]
-    credentials = ServiceAccountCredentials.from_json_keyfile_name(
-        GOOGLE_CREDENTIALS_FILE,
-        scope,
+def _credentials_path():
+    configured = str(GOOGLE_CREDENTIALS_FILE or "").strip()
+    candidates = []
+
+    if configured:
+        candidates.append(Path(configured))
+        candidates.append(Path("/etc/secrets") / Path(configured).name)
+
+    candidates.append(Path("/etc/secrets/google_credentials.json"))
+    candidates.append(Path("google_credentials.json"))
+
+    checked = []
+    for candidate in candidates:
+        candidate = candidate.expanduser()
+        candidate_text = str(candidate)
+        if candidate_text in checked:
+            continue
+        checked.append(candidate_text)
+
+        try:
+            if candidate.is_file():
+                return candidate
+        except PermissionError:
+            # Preserve this candidate so the caller can report the exact stage.
+            return candidate
+
+    raise FileNotFoundError(
+        "Google credentials file was not found. Checked: " + ", ".join(checked)
     )
-    return gspread.authorize(credentials)
+
+
+def _client():
+    stage = "resolve_credentials_path"
+    try:
+        credentials_path = _credentials_path()
+
+        stage = "read_credentials_file"
+        raw_text = credentials_path.read_text(encoding="utf-8")
+
+        stage = "parse_credentials_json"
+        credentials_info = json.loads(raw_text)
+
+        required_keys = {"client_email", "private_key", "token_uri"}
+        missing_keys = sorted(required_keys.difference(credentials_info))
+        if missing_keys:
+            raise ValueError(
+                "Credentials JSON is missing fields: " + ", ".join(missing_keys)
+            )
+
+        stage = "authorize_gspread"
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        return gspread.service_account_from_dict(credentials_info, scopes=scopes)
+    except Exception as error:
+        path_value = str(GOOGLE_CREDENTIALS_FILE or "")
+        print(
+            "DEV Google auth failed "
+            f"at stage={stage}; configured_path={path_value!r}; "
+            f"cwd={os.getcwd()!r}; error={type(error).__name__}: {error}",
+            flush=True,
+        )
+        print(traceback.format_exc(), flush=True)
+        raise
 
 
 def _worksheet():
     if not GOOGLE_SHEET_ID:
         raise RuntimeError("GOOGLE_SHEET_ID is missing")
 
-    spreadsheet = _client().open_by_key(GOOGLE_SHEET_ID)
+    client = _client()
+    spreadsheet = client.open_by_key(GOOGLE_SHEET_ID)
     worksheet = spreadsheet.worksheet(USERS_SHEET_NAME)
     headers = worksheet.row_values(1)
     missing = sorted(REQUIRED_HEADERS.difference(headers))
