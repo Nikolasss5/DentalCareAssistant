@@ -4,6 +4,7 @@ from telebot.types import Update
 
 import sheets
 from config import BOT_TOKEN, CRON_SECRET, PORT, WEBHOOK_SECRET, WEBHOOK_URL
+from dev_booking_persistence import append_consultation_request
 from dev_user_persistence import (
     get_user_language as dev_get_user_language,
     set_user_language as dev_set_user_language,
@@ -12,13 +13,16 @@ from dev_user_persistence import (
 # Patch only the DEV runtime. Production entrypoint remains unchanged.
 sheets.get_user_language = dev_get_user_language
 sheets.set_user_language = dev_set_user_language
+sheets.append_booking_request = append_consultation_request
 
 import handlers  # noqa: E402
+import booking  # noqa: E402
 from postcare import send_due_postcare  # noqa: E402
 from recall import send_due_recalls  # noqa: E402
 from reminders import send_due_reminders  # noqa: E402
 
 handlers.get_user_language = dev_get_user_language
+booking.append_booking_request = append_consultation_request
 
 
 def _strict_set_user_language(*args, **kwargs):
